@@ -1,0 +1,632 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tablero Operativo — Prueba DESPEGA</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #f5f4f0;
+    --surface: #ffffff;
+    --surface2: #f1efe8;
+    --border: rgba(0,0,0,0.12);
+    --border2: rgba(0,0,0,0.22);
+    --text: #1a1a18;
+    --text2: #5f5e5a;
+    --text3: #888780;
+    --radius: 12px;
+    --radius-sm: 8px;
+    --blue: #185fa5;
+    --blue-bg: #e6f1fb;
+    --blue-text: #0c447c;
+    --green: #3b6d11;
+    --green-bg: #eaf3de;
+    --green-text: #27500a;
+    --amber: #854f0b;
+    --amber-bg: #faeeda;
+    --amber-text: #633806;
+    --red: #a32d2d;
+    --red-bg: #fcebeb;
+    --red-text: #791f1f;
+    --coral: #993c1d;
+    --coral-bg: #faece7;
+    --coral-text: #712b13;
+    --purple: #534ab7;
+    --purple-bg: #eeedfe;
+    --purple-text: #3c3489;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #1c1c1a;
+      --surface: #2c2c2a;
+      --surface2: #242422;
+      --border: rgba(255,255,255,0.12);
+      --border2: rgba(255,255,255,0.22);
+      --text: #f1efe8;
+      --text2: #b4b2a9;
+      --text3: #888780;
+      --blue-bg: #0c447c;
+      --blue-text: #b5d4f4;
+      --green-bg: #27500a;
+      --green-text: #c0dd97;
+      --amber-bg: #633806;
+      --amber-text: #fac775;
+      --red-bg: #791f1f;
+      --red-text: #f7c1c1;
+      --coral-bg: #712b13;
+      --coral-text: #f5c4b3;
+      --purple-bg: #3c3489;
+      --purple-text: #cecbf6;
+    }
+  }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    font-size: 14px;
+    line-height: 1.5;
+  }
+  .page { max-width: 1100px; margin: 0 auto; padding: 24px 20px 48px; }
+
+  /* HEADER */
+  .header {
+    display: flex; align-items: flex-start; justify-content: space-between;
+    flex-wrap: wrap; gap: 12px;
+    margin-bottom: 28px;
+    padding-bottom: 20px;
+    border-bottom: 0.5px solid var(--border2);
+  }
+  .header-left h1 {
+    font-size: 22px; font-weight: 500; color: var(--text); line-height: 1.3;
+  }
+  .header-left p { font-size: 13px; color: var(--text2); margin-top: 4px; }
+  .header-right { display: flex; flex-direction: column; align-items: flex-end; gap: 8px; }
+  .badge-status {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 6px 14px; border-radius: 20px;
+    font-size: 12px; font-weight: 500;
+    background: var(--amber-bg); color: var(--amber-text);
+  }
+  .badge-status .dot {
+    width: 7px; height: 7px; border-radius: 50%;
+    background: #ba7517; animation: pulse 1.8s infinite;
+  }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+
+  .refresh-controls { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; justify-content: flex-end; }
+  .btn-refresh {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 7px 14px; background: var(--blue-text); color: #fff;
+    border: none; border-radius: var(--radius-sm); font-size: 12px;
+    font-weight: 500; cursor: pointer; transition: opacity 0.15s;
+  }
+  .btn-refresh:hover { opacity: 0.88; }
+  .btn-refresh:active { transform: scale(0.98); }
+  .btn-refresh:disabled { opacity: 0.5; cursor: default; }
+  .btn-refresh i { font-size: 15px; }
+  .btn-refresh.loading i { animation: spin 0.9s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .updated-info { font-size: 11px; color: var(--text3); text-align: right; }
+  .updated-info.err { color: var(--red); }
+
+  /* SECTION LABEL */
+  .section-label {
+    font-size: 11px; font-weight: 500; letter-spacing: 0.06em;
+    text-transform: uppercase; color: var(--text3);
+    margin: 28px 0 12px;
+  }
+
+  /* METRIC CARDS */
+  .metrics-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 10px;
+  }
+  .metric-card {
+    background: var(--surface);
+    border: 0.5px solid var(--border);
+    border-radius: var(--radius);
+    padding: 14px 16px;
+  }
+  .metric-card .label {
+    font-size: 11px; color: var(--text3); font-weight: 500;
+    text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 6px;
+    display: flex; align-items: center; gap: 5px;
+  }
+  .metric-card .value {
+    font-size: 28px; font-weight: 500; color: var(--text); line-height: 1;
+  }
+  .metric-card .sub {
+    font-size: 11px; color: var(--text3); margin-top: 4px;
+  }
+  .metric-card.blue { background: var(--blue-bg); border-color: transparent; }
+  .metric-card.blue .label, .metric-card.blue .sub { color: var(--blue); }
+  .metric-card.blue .value { color: var(--blue-text); }
+  .metric-card.green { background: var(--green-bg); border-color: transparent; }
+  .metric-card.green .label, .metric-card.green .sub { color: var(--green); }
+  .metric-card.green .value { color: var(--green-text); }
+  .metric-card.red { background: var(--red-bg); border-color: transparent; }
+  .metric-card.red .label, .metric-card.red .sub { color: var(--red); }
+  .metric-card.red .value { color: var(--red-text); }
+  .metric-card.amber { background: var(--amber-bg); border-color: transparent; }
+  .metric-card.amber .label, .metric-card.amber .sub { color: var(--amber); }
+  .metric-card.amber .value { color: var(--amber-text); }
+  .metric-card.purple { background: var(--purple-bg); border-color: transparent; }
+  .metric-card.purple .label, .metric-card.purple .sub { color: var(--purple); }
+  .metric-card.purple .value { color: var(--purple-text); }
+
+  /* TWO-COL LAYOUT */
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  @media (max-width: 640px) { .two-col { grid-template-columns: 1fr; } }
+
+  /* CARD */
+  .card {
+    background: var(--surface);
+    border: 0.5px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px 18px;
+  }
+  .card-title {
+    font-size: 13px; font-weight: 500; color: var(--text);
+    margin-bottom: 14px;
+    display: flex; align-items: center; gap: 7px;
+  }
+  .card-title i { font-size: 16px; color: var(--text3); }
+
+  /* TABLE */
+  .table-wrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  thead tr { border-bottom: 0.5px solid var(--border2); }
+  th {
+    padding: 8px 10px; text-align: left;
+    font-size: 10px; font-weight: 500; letter-spacing: 0.05em;
+    text-transform: uppercase; color: var(--text3);
+    white-space: nowrap;
+  }
+  td { padding: 9px 10px; border-bottom: 0.5px solid var(--border); color: var(--text2); }
+  tr:last-child td { border-bottom: none; }
+  tbody tr:hover td { background: var(--surface2); }
+  td.primary { color: var(--text); font-weight: 500; }
+  td.center { text-align: center; }
+
+  .pill {
+    display: inline-block; padding: 2px 8px;
+    border-radius: 20px; font-size: 11px; font-weight: 500;
+  }
+  .pill-ok { background: var(--green-bg); color: var(--green-text); }
+  .pill-warn { background: var(--amber-bg); color: var(--amber-text); }
+  .pill-err { background: var(--red-bg); color: var(--red-text); }
+  .pill-pending { background: var(--surface2); color: var(--text3); }
+
+  /* INCIDENCIA ROW */
+  .inc-row { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+  .inc-icon {
+    width: 32px; height: 32px; border-radius: var(--radius-sm);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px; flex-shrink: 0;
+  }
+  .inc-icon.amber { background: var(--amber-bg); color: var(--amber); }
+  .inc-icon.red { background: var(--red-bg); color: var(--red); }
+  .inc-icon.blue { background: var(--blue-bg); color: var(--blue); }
+  .inc-icon.coral { background: var(--coral-bg); color: var(--coral); }
+  .inc-icon.purple { background: var(--purple-bg); color: var(--purple); }
+  .inc-label { flex: 1; font-size: 12px; color: var(--text2); }
+  .inc-count {
+    font-size: 20px; font-weight: 500;
+    color: var(--text); min-width: 32px; text-align: right;
+  }
+
+  /* FOOTER */
+  .footer {
+    margin-top: 36px; padding-top: 16px;
+    border-top: 0.5px solid var(--border);
+    font-size: 11px; color: var(--text3);
+    display: flex; justify-content: space-between; flex-wrap: wrap; gap: 8px;
+  }
+
+  .banner {
+    display: none; align-items: flex-start; gap: 8px;
+    border-radius: var(--radius-sm); padding: 10px 12px;
+    font-size: 12px; margin-bottom: 16px;
+  }
+  .banner i { font-size: 15px; flex-shrink: 0; margin-top: 1px; }
+  .banner.err { background: var(--red-bg); color: var(--red-text); }
+</style>
+</head>
+<body>
+<div class="page">
+  <h2 class="sr-only" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0)">
+    Tablero operativo de la Prueba DESPEGA — registro de incidencias y asistencia por centro educativo
+  </h2>
+
+  <!-- HEADER -->
+  <div class="header">
+    <div class="header-left">
+      <h1><i class="ti ti-school" style="font-size:20px;vertical-align:-3px;margin-right:6px;color:#185fa5" aria-hidden="true"></i>Prueba DESPEGA — Tablero operativo</h1>
+      <p id="header-sub">Registro de incidencias y asistencia por Centro Educativo</p>
+    </div>
+    <div class="header-right">
+      <span class="badge-status">
+        <span class="dot"></span>
+        En vivo
+      </span>
+      <div class="refresh-controls">
+        <button class="btn-refresh" id="btn-refresh" onclick="fetchData()">
+          <i class="ti ti-refresh" aria-hidden="true"></i> Actualizar
+        </button>
+      </div>
+      <div class="updated-info" id="updated-info">Cargando datos…</div>
+    </div>
+  </div>
+
+  <!-- ERROR BANNER -->
+  <div class="banner err" id="error-banner" role="alert">
+    <i class="ti ti-alert-triangle" aria-hidden="true"></i>
+    <span id="error-text"></span>
+  </div>
+
+  <!-- MÉTRICAS ASISTENCIA -->
+  <div class="section-label">Asistencia</div>
+  <div class="metrics-grid" id="metricas-asistencia">
+    <div class="metric-card blue">
+      <div class="label"><i class="ti ti-building-school" aria-hidden="true"></i>CEs reportando</div>
+      <div class="value" id="ces-reportando">0</div>
+      <div class="sub" id="ces-reportando-sub">centros</div>
+    </div>
+    <div class="metric-card">
+      <div class="label"><i class="ti ti-users" aria-hidden="true"></i>Alumnos esperados</div>
+      <div class="value" id="total-esperados">0</div>
+      <div class="sub">total convocados</div>
+    </div>
+    <div class="metric-card green">
+      <div class="label"><i class="ti ti-user-check" aria-hidden="true"></i>Presentes</div>
+      <div class="value" id="total-presentes">0</div>
+      <div class="sub">alumnos</div>
+    </div>
+    <div class="metric-card amber">
+      <div class="label"><i class="ti ti-user-off" aria-hidden="true"></i>Ausentes</div>
+      <div class="value" id="total-ausentes">0</div>
+      <div class="sub">alumnos</div>
+    </div>
+    <div class="metric-card purple">
+      <div class="label"><i class="ti ti-percentage" aria-hidden="true"></i>% Asistencia</div>
+      <div class="value" id="pct-asistencia">—</div>
+      <div class="sub">global</div>
+    </div>
+    <div class="metric-card red">
+      <div class="label"><i class="ti ti-alert-triangle" aria-hidden="true"></i>Total incidencias</div>
+      <div class="value" id="total-incidencias">0</div>
+      <div class="sub">registradas</div>
+    </div>
+  </div>
+
+  <!-- DOS COLUMNAS: INCIDENCIAS + ASISTENCIA POR CE -->
+  <div class="two-col" style="margin-top:16px">
+    <!-- INCIDENCIAS DETALLE -->
+    <div class="card">
+      <div class="card-title"><i class="ti ti-alert-circle" aria-hidden="true"></i>Desglose de incidencias</div>
+
+      <div class="inc-row">
+        <div class="inc-icon amber"><i class="ti ti-bolt-off" aria-hidden="true"></i></div>
+        <div class="inc-label">Falla eléctrica</div>
+        <div class="inc-count" id="inc-elect">0</div>
+      </div>
+      <div class="inc-row">
+        <div class="inc-icon blue"><i class="ti ti-wifi-off" aria-hidden="true"></i></div>
+        <div class="inc-label">Sin internet</div>
+        <div class="inc-count" id="inc-internet">0</div>
+      </div>
+      <div class="inc-row">
+        <div class="inc-icon coral"><i class="ti ti-user-x" aria-hidden="true"></i></div>
+        <div class="inc-label">Ausencia de cuidador</div>
+        <div class="inc-count" id="inc-cuidador">0</div>
+      </div>
+      <div class="inc-row">
+        <div class="inc-icon red"><i class="ti ti-id-badge-off" aria-hidden="true"></i></div>
+        <div class="inc-label">Ausencia de coordinador</div>
+        <div class="inc-count" id="inc-coord">0</div>
+      </div>
+      <div class="inc-row">
+        <div class="inc-icon purple"><i class="ti ti-mood-confuzed" aria-hidden="true"></i></div>
+        <div class="inc-label">Desorden exterior aula</div>
+        <div class="inc-count" id="inc-desorden">0</div>
+      </div>
+
+      <div style="margin-top:16px; position:relative; height:160px;">
+        <canvas id="chartIncidencias" role="img" aria-label="Gráfico de barras de incidencias por tipo"></canvas>
+      </div>
+    </div>
+
+    <!-- ASISTENCIA POR CE (BARRAS) -->
+    <div class="card">
+      <div class="card-title"><i class="ti ti-chart-bar" aria-hidden="true"></i>Asistencia por centro educativo</div>
+      <div style="position:relative; height:228px;">
+        <canvas id="chartAsistencia" role="img" aria-label="Gráfico de asistencia por centro educativo"></canvas>
+      </div>
+      <div style="display:flex;gap:12px;margin-top:8px;font-size:11px;color:var(--text3);">
+        <span style="display:flex;align-items:center;gap:4px;"><span style="width:10px;height:10px;border-radius:2px;background:#185fa5;"></span>Presentes</span>
+        <span style="display:flex;align-items:center;gap:4px;"><span style="width:10px;height:10px;border-radius:2px;background:#e2b27a;"></span>Ausentes</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- TABLA DE CENTROS -->
+  <div class="section-label" style="margin-top:28px">Registro por centro educativo</div>
+  <div class="card" style="padding:0;">
+    <div class="table-wrap">
+      <table id="tabla-ces">
+        <thead>
+          <tr>
+            <th>Código CE</th>
+            <th>Centro educativo</th>
+            <th>Monitor</th>
+            <th class="center">Esperados</th>
+            <th class="center">Presentes</th>
+            <th class="center">% Asist.</th>
+            <th class="center">Incidencias</th>
+            <th>Inicio</th>
+            <th>Receso</th>
+            <th>Fin</th>
+            <th class="center">Estado</th>
+          </tr>
+        </thead>
+        <tbody id="tabla-body"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- FOOTER -->
+  <div class="footer">
+    <span><i class="ti ti-cloud" style="vertical-align:-2px;margin-right:4px" aria-hidden="true"></i>Datos leídos en vivo desde Google Sheets · actualización automática cada minuto.</span>
+    <span>Prueba DESPEGA · Tablero operativo</span>
+  </div>
+</div>
+
+<script>
+/* ============================================================
+   CONFIGURACIÓN
+   ============================================================ */
+const SHEET_ID    = '1owxrSnT6TIyw8nnN6jA_aF8YGJF-kok9HXYlwpjcUOM';
+const SHEET_NAME  = 'REGISTRO INCIDENCIAS';
+const REFRESH_MS  = 60000; // 60 segundos
+const HANDLER     = 'onDespegaData';
+
+/* Índices de columnas en la hoja REGISTRO INCIDENCIAS:
+   0 Código CE | 1 Nombre CE | 2 Monitor | 3 Alumnos Esperados |
+   4 Asistencia Total | 5 Ausencias | 6 % Asistencia | 7 Electricidad |
+   8 Internet | 9 Ausencia Cuidador | 10 Ausencia Coordinador |
+   11 Desorden Exterior Aula | 12 Total Incidencias |
+   13 Hora Inicio Prueba | 14 Inicio Receso | 15 Hora Finalización */
+
+let registros = [];
+let chartInc = null, chartAsist = null;
+
+/* ============================================================
+   CARGA DE DATOS (JSONP — evita problemas de CORS)
+   ============================================================ */
+function gvizUrl() {
+  return 'https://docs.google.com/spreadsheets/d/' + SHEET_ID +
+         '/gviz/tq?sheet=' + encodeURIComponent(SHEET_NAME) +
+         '&tqx=out:json;responseHandler:' + HANDLER +
+         '&_=' + Date.now();
+}
+
+function fetchData() {
+  const btn = document.getElementById('btn-refresh');
+  btn.classList.add('loading');
+  btn.disabled = true;
+  document.getElementById('updated-info').classList.remove('err');
+  document.getElementById('updated-info').textContent = 'Actualizando…';
+
+  const old = document.getElementById('gviz-script');
+  if (old) old.remove();
+
+  const s = document.createElement('script');
+  s.id = 'gviz-script';
+  s.src = gvizUrl();
+  s.onerror = function () { mostrarError('No se pudo conectar con el Google Sheet. Revisa la conexión.'); };
+  document.body.appendChild(s);
+}
+
+function cellV(c, i) { return (c[i] && c[i].v !== null && c[i].v !== undefined) ? c[i].v : null; }
+function cellF(c, i) { return c[i] ? (c[i].f !== null && c[i].f !== undefined ? c[i].f : c[i].v) : null; }
+
+function parseRow(c) {
+  if (!c) return null;
+  const codigoRaw = cellV(c, 0);
+  if (codigoRaw === null || codigoRaw === '') return null;
+  const esperados = Number(cellV(c, 3)) || 0;
+  const presentes = Number(cellV(c, 4)) || 0;
+  return {
+    codigo:   String(codigoRaw),
+    nombre:   cellV(c, 1) || '',
+    monitor:  cellV(c, 2) || '',
+    esperados: esperados,
+    presentes: presentes,
+    elect:    Number(cellV(c, 7))  ? 1 : 0,
+    internet: Number(cellV(c, 8))  ? 1 : 0,
+    cuidador: Number(cellV(c, 9))  ? 1 : 0,
+    coord:    Number(cellV(c, 10)) ? 1 : 0,
+    desorden: Number(cellV(c, 11)) ? 1 : 0,
+    inicio:   cellF(c, 13) || '—',
+    receso:   cellF(c, 14) || '—',
+    fin:      cellF(c, 15) || '—'
+  };
+}
+
+/* Callback JSONP */
+window[HANDLER] = function (resp) {
+  try {
+    if (!resp || resp.status === 'error' || !resp.table) {
+      mostrarError('El Google Sheet devolvió una respuesta inválida.');
+      return;
+    }
+    const rows = resp.table.rows || [];
+    registros = rows.map(function (r) { return parseRow(r.c); })
+                    .filter(function (x) { return x && x.codigo; });
+    render();
+    marcarActualizado();
+  } catch (e) {
+    mostrarError('Error procesando datos: ' + e.message);
+  } finally {
+    const btn = document.getElementById('btn-refresh');
+    btn.classList.remove('loading');
+    btn.disabled = false;
+  }
+};
+
+function marcarActualizado() {
+  document.getElementById('error-banner').style.display = 'none';
+  const info = document.getElementById('updated-info');
+  info.classList.remove('err');
+  const ahora = new Date();
+  const hora = ahora.toLocaleTimeString('es-SV', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+  info.innerHTML = '<i class="ti ti-circle-check" style="vertical-align:-2px"></i> Última actualización: ' + hora;
+}
+
+function mostrarError(msg) {
+  const banner = document.getElementById('error-banner');
+  document.getElementById('error-text').textContent = msg;
+  banner.style.display = 'flex';
+  const info = document.getElementById('updated-info');
+  info.classList.add('err');
+  info.textContent = 'Error al actualizar';
+  const btn = document.getElementById('btn-refresh');
+  btn.classList.remove('loading');
+  btn.disabled = false;
+}
+
+/* ============================================================
+   CÁLCULOS Y RENDER
+   ============================================================ */
+function calcTotales() {
+  let cesRep = registros.length, esperados = 0, presentes = 0, ausentes = 0;
+  let elect = 0, internet = 0, cuidador = 0, coord = 0, desorden = 0;
+  registros.forEach(function (r) {
+    esperados += r.esperados;
+    presentes += r.presentes;
+    ausentes  += Math.max(0, r.esperados - r.presentes);
+    elect += r.elect; internet += r.internet; cuidador += r.cuidador;
+    coord += r.coord; desorden += r.desorden;
+  });
+  const totalInc = elect + internet + cuidador + coord + desorden;
+  const pct = esperados > 0 ? Math.round((presentes / esperados) * 1000) / 10 : null;
+  return { cesRep, esperados, presentes, ausentes, elect, internet, cuidador, coord, desorden, totalInc, pct };
+}
+
+function render() {
+  const t = calcTotales();
+  document.getElementById('header-sub').textContent =
+    'Registro de incidencias y asistencia por Centro Educativo · ' + t.cesRep + ' CEs registrados';
+  document.getElementById('ces-reportando').textContent = t.cesRep;
+  document.getElementById('ces-reportando-sub').textContent = t.cesRep === 1 ? 'centro' : 'centros';
+  document.getElementById('total-esperados').textContent = t.esperados;
+  document.getElementById('total-presentes').textContent = t.presentes;
+  document.getElementById('total-ausentes').textContent = t.ausentes;
+  document.getElementById('pct-asistencia').textContent = t.pct !== null ? t.pct + '%' : '—';
+  document.getElementById('total-incidencias').textContent = t.totalInc;
+  document.getElementById('inc-elect').textContent = t.elect;
+  document.getElementById('inc-internet').textContent = t.internet;
+  document.getElementById('inc-cuidador').textContent = t.cuidador;
+  document.getElementById('inc-coord').textContent = t.coord;
+  document.getElementById('inc-desorden').textContent = t.desorden;
+  actualizarTabla();
+  actualizarGraficos(t);
+}
+
+function actualizarTabla() {
+  const tbody = document.getElementById('tabla-body');
+  tbody.innerHTML = '';
+  if (registros.length === 0) {
+    const tr = document.createElement('tr');
+    tr.innerHTML = '<td colspan="11" class="center" style="padding:20px;color:var(--text3)">Sin datos disponibles.</td>';
+    tbody.appendChild(tr);
+    return;
+  }
+  registros.forEach(function (r) {
+    const pct = r.esperados > 0 ? Math.round((r.presentes / r.esperados) * 100) : 0;
+    const inc = r.elect + r.internet + r.cuidador + r.coord + r.desorden;
+    const estado = inc === 0 ? '<span class="pill pill-ok">Sin incidencias</span>'
+                 : inc <= 2 ? '<span class="pill pill-warn">' + inc + ' incid.</span>'
+                 : '<span class="pill pill-err">' + inc + ' incid.</span>';
+    const tr = document.createElement('tr');
+    tr.innerHTML =
+      '<td class="primary">' + r.codigo + '</td>' +
+      '<td class="primary">' + r.nombre + '</td>' +
+      '<td>' + r.monitor + '</td>' +
+      '<td class="center">' + r.esperados + '</td>' +
+      '<td class="center">' + r.presentes + '</td>' +
+      '<td class="center">' + pct + '%</td>' +
+      '<td class="center">' + inc + '</td>' +
+      '<td>' + r.inicio + '</td>' +
+      '<td>' + r.receso + '</td>' +
+      '<td>' + r.fin + '</td>' +
+      '<td class="center">' + estado + '</td>';
+    tbody.appendChild(tr);
+  });
+}
+
+function actualizarGraficos(t) {
+  if (typeof Chart === 'undefined') return;
+
+  if (chartInc) chartInc.destroy();
+  chartInc = new Chart(document.getElementById('chartIncidencias'), {
+    type: 'bar',
+    data: {
+      labels: ['Electricidad', 'Internet', 'Cuidador', 'Coordinador', 'Desorden'],
+      datasets: [{
+        label: 'Incidencias',
+        data: [t.elect, t.internet, t.cuidador, t.coord, t.desorden],
+        backgroundColor: ['#ba7517', '#185fa5', '#d85a30', '#a32d2d', '#534ab7'],
+        borderRadius: 4
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      animation: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        y: { beginAtZero: true, ticks: { precision: 0, color: '#888780', font: { size: 10 } }, grid: { color: 'rgba(128,128,128,0.12)' } },
+        x: { ticks: { color: '#888780', font: { size: 10 } }, grid: { display: false } }
+      }
+    }
+  });
+
+  const labels = registros.map(function (r) { return r.codigo; });
+  const dataP = registros.map(function (r) { return r.presentes; });
+  const dataA = registros.map(function (r) { return Math.max(0, r.esperados - r.presentes); });
+
+  if (chartAsist) chartAsist.destroy();
+  chartAsist = new Chart(document.getElementById('chartAsistencia'), {
+    type: 'bar',
+    data: {
+      labels: labels,
+      datasets: [
+        { label: 'Presentes', data: dataP, backgroundColor: '#185fa5', borderRadius: 2 },
+        { label: 'Ausentes',  data: dataA, backgroundColor: '#e2b27a', borderRadius: 2 }
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      animation: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { stacked: true, ticks: { color: '#888780', font: { size: 9 }, autoSkip: true, maxRotation: 70, minRotation: 45 }, grid: { display: false } },
+        y: { stacked: true, beginAtZero: true, ticks: { color: '#888780', font: { size: 10 } }, grid: { color: 'rgba(128,128,128,0.12)' } }
+      }
+    }
+  });
+}
+
+/* ============================================================
+   ARRANQUE + AUTO-REFRESH CADA MINUTO
+   ============================================================ */
+fetchData();
+setInterval(fetchData, REFRESH_MS);
+</script>
+</body>
+</html>
