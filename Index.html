@@ -1,0 +1,647 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tablero Operativo — Prueba DESPEGA</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #f5f4f0;
+    --surface: #ffffff;
+    --surface2: #f1efe8;
+    --border: rgba(0,0,0,0.12);
+    --border2: rgba(0,0,0,0.22);
+    --text: #1a1a18;
+    --text2: #5f5e5a;
+    --text3: #888780;
+    --radius: 12px;
+    --radius-sm: 8px;
+    --blue: #185fa5;
+    --blue-bg: #e6f1fb;
+    --blue-text: #0c447c;
+    --green: #3b6d11;
+    --green-bg: #eaf3de;
+    --green-text: #27500a;
+    --amber: #854f0b;
+    --amber-bg: #faeeda;
+    --amber-text: #633806;
+    --red: #a32d2d;
+    --red-bg: #fcebeb;
+    --red-text: #791f1f;
+    --coral: #993c1d;
+    --coral-bg: #faece7;
+    --coral-text: #712b13;
+    --purple: #534ab7;
+    --purple-bg: #eeedfe;
+    --purple-text: #3c3489;
+    --gray-bg: #ececea;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #1c1c1a;
+      --surface: #2c2c2a;
+      --surface2: #242422;
+      --border: rgba(255,255,255,0.12);
+      --border2: rgba(255,255,255,0.22);
+      --text: #f1efe8;
+      --text2: #b4b2a9;
+      --text3: #888780;
+      --blue-bg: #0c447c;
+      --blue-text: #b5d4f4;
+      --green-bg: #27500a;
+      --green-text: #c0dd97;
+      --amber-bg: #633806;
+      --amber-text: #fac775;
+      --red-bg: #791f1f;
+      --red-text: #f7c1c1;
+      --coral-bg: #712b13;
+      --coral-text: #f5c4b3;
+      --purple-bg: #3c3489;
+      --purple-text: #cecbf6;
+      --gray-bg: #3a3a37;
+    }
+  }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    font-size: 14px;
+    line-height: 1.5;
+  }
+  .page { max-width: 1180px; margin: 0 auto; padding: 24px 20px 48px; }
+
+  /* HEADER */
+  .header {
+    display: flex; align-items: flex-start; justify-content: space-between;
+    flex-wrap: wrap; gap: 12px;
+    margin-bottom: 28px;
+    padding-bottom: 20px;
+    border-bottom: 0.5px solid var(--border2);
+  }
+  .header-left h1 { font-size: 22px; font-weight: 500; color: var(--text); line-height: 1.3; }
+  .header-left p { font-size: 13px; color: var(--text2); margin-top: 4px; }
+  .header-right { display: flex; flex-direction: column; align-items: flex-end; gap: 8px; }
+  .badge-status {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 6px 14px; border-radius: 20px;
+    font-size: 12px; font-weight: 500;
+    background: var(--green-bg); color: var(--green-text);
+  }
+  .badge-status .dot { width: 7px; height: 7px; border-radius: 50%; background: #3b6d11; animation: pulse 1.8s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+  .btn-refresh {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 7px 14px; background: var(--blue-text); color: #fff;
+    border: none; border-radius: var(--radius-sm); font-size: 12px;
+    font-weight: 500; cursor: pointer; transition: opacity 0.15s;
+  }
+  .btn-refresh:hover { opacity: 0.88; }
+  .btn-refresh:active { transform: scale(0.98); }
+  .btn-refresh:disabled { opacity: 0.5; cursor: default; }
+  .btn-refresh i { font-size: 15px; }
+  .btn-refresh.loading i { animation: spin 0.9s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .updated-info { font-size: 11px; color: var(--text3); text-align: right; }
+  .updated-info.err { color: var(--red); }
+
+  .section-label {
+    font-size: 11px; font-weight: 500; letter-spacing: 0.06em;
+    text-transform: uppercase; color: var(--text3);
+    margin: 28px 0 12px;
+  }
+
+  /* METRIC CARDS */
+  .metrics-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }
+  .metric-card { background: var(--surface); border: 0.5px solid var(--border); border-radius: var(--radius); padding: 14px 16px; }
+  .metric-card .label {
+    font-size: 11px; color: var(--text3); font-weight: 500;
+    text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 6px;
+    display: flex; align-items: center; gap: 5px;
+  }
+  .metric-card .value { font-size: 28px; font-weight: 500; color: var(--text); line-height: 1; }
+  .metric-card .sub { font-size: 11px; color: var(--text3); margin-top: 4px; }
+  .metric-card.blue { background: var(--blue-bg); border-color: transparent; }
+  .metric-card.blue .label, .metric-card.blue .sub { color: var(--blue); }
+  .metric-card.blue .value { color: var(--blue-text); }
+  .metric-card.green { background: var(--green-bg); border-color: transparent; }
+  .metric-card.green .label, .metric-card.green .sub { color: var(--green); }
+  .metric-card.green .value { color: var(--green-text); }
+  .metric-card.red { background: var(--red-bg); border-color: transparent; }
+  .metric-card.red .label, .metric-card.red .sub { color: var(--red); }
+  .metric-card.red .value { color: var(--red-text); }
+  .metric-card.amber { background: var(--amber-bg); border-color: transparent; }
+  .metric-card.amber .label, .metric-card.amber .sub { color: var(--amber); }
+  .metric-card.amber .value { color: var(--amber-text); }
+  .metric-card.purple { background: var(--purple-bg); border-color: transparent; }
+  .metric-card.purple .label, .metric-card.purple .sub { color: var(--purple); }
+  .metric-card.purple .value { color: var(--purple-text); }
+
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  @media (max-width: 720px) { .two-col { grid-template-columns: 1fr; } }
+
+  .card { background: var(--surface); border: 0.5px solid var(--border); border-radius: var(--radius); padding: 16px 18px; }
+  .card-title { font-size: 13px; font-weight: 500; color: var(--text); margin-bottom: 14px; display: flex; align-items: center; gap: 7px; }
+  .card-title i { font-size: 16px; color: var(--text3); }
+
+  /* TABLE */
+  .table-wrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  thead tr { border-bottom: 0.5px solid var(--border2); }
+  th { padding: 8px 10px; text-align: left; font-size: 10px; font-weight: 500; letter-spacing: 0.05em; text-transform: uppercase; color: var(--text3); white-space: nowrap; }
+  td { padding: 9px 10px; border-bottom: 0.5px solid var(--border); color: var(--text2); white-space: nowrap; }
+  tr:last-child td { border-bottom: none; }
+  tbody tr:hover td { background: var(--surface2); }
+  td.primary { color: var(--text); font-weight: 500; }
+  td.center { text-align: center; }
+
+  .pill { display: inline-block; padding: 2px 8px; border-radius: 20px; font-size: 11px; font-weight: 500; white-space: nowrap; }
+  .pill-ok { background: var(--green-bg); color: var(--green-text); }
+  .pill-warn { background: var(--amber-bg); color: var(--amber-text); }
+  .pill-err { background: var(--red-bg); color: var(--red-text); }
+  .pill-pending { background: var(--gray-bg); color: var(--text3); }
+
+  /* INCIDENCIA ROW */
+  .inc-row { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+  .inc-icon { width: 32px; height: 32px; border-radius: var(--radius-sm); display: flex; align-items: center; justify-content: center; font-size: 16px; flex-shrink: 0; }
+  .inc-icon.amber { background: var(--amber-bg); color: var(--amber); }
+  .inc-icon.red { background: var(--red-bg); color: var(--red); }
+  .inc-icon.blue { background: var(--blue-bg); color: var(--blue); }
+  .inc-icon.coral { background: var(--coral-bg); color: var(--coral); }
+  .inc-icon.purple { background: var(--purple-bg); color: var(--purple); }
+  .inc-icon.green { background: var(--green-bg); color: var(--green); }
+  .inc-label { flex: 1; font-size: 12px; color: var(--text2); }
+  .inc-count { font-size: 20px; font-weight: 500; color: var(--text); min-width: 32px; text-align: right; }
+  .inc-count.zero { color: var(--text3); }
+
+  .footer {
+    margin-top: 36px; padding-top: 16px;
+    border-top: 0.5px solid var(--border);
+    font-size: 11px; color: var(--text3);
+    display: flex; justify-content: space-between; flex-wrap: wrap; gap: 8px;
+  }
+  .banner { display: none; align-items: flex-start; gap: 8px; border-radius: var(--radius-sm); padding: 10px 12px; font-size: 12px; margin-bottom: 16px; }
+  .banner i { font-size: 15px; flex-shrink: 0; margin-top: 1px; }
+  .banner.err { background: var(--red-bg); color: var(--red-text); }
+</style>
+</head>
+<body>
+<div class="page">
+  <h2 class="sr-only" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0)">
+    Tablero operativo de la Prueba DESPEGA — estado y readiness por centro educativo
+  </h2>
+
+  <!-- HEADER -->
+  <div class="header">
+    <div class="header-left">
+      <h1><i class="ti ti-school" style="font-size:20px;vertical-align:-3px;margin-right:6px;color:#185fa5" aria-hidden="true"></i>Prueba DESPEGA — Tablero operativo</h1>
+      <p id="header-sub">Estado de preparación e incidencias por Centro Educativo</p>
+    </div>
+    <div class="header-right">
+      <span class="badge-status"><span class="dot"></span>En vivo</span>
+      <button class="btn-refresh" id="btn-refresh" onclick="fetchData()"><i class="ti ti-refresh" aria-hidden="true"></i> Actualizar</button>
+      <div class="updated-info" id="updated-info">Cargando datos…</div>
+    </div>
+  </div>
+
+  <!-- ERROR BANNER -->
+  <div class="banner err" id="error-banner" role="alert">
+    <i class="ti ti-alert-triangle" aria-hidden="true"></i>
+    <span id="error-text"></span>
+  </div>
+
+  <!-- MÉTRICAS -->
+  <div class="section-label">Resumen general</div>
+  <div class="metrics-grid">
+    <div class="metric-card blue">
+      <div class="label"><i class="ti ti-building-school" aria-hidden="true"></i>CEs registrados</div>
+      <div class="value" id="m-registrados">0</div>
+      <div class="sub">centros en la hoja</div>
+    </div>
+    <div class="metric-card green">
+      <div class="label"><i class="ti ti-circle-check" aria-hidden="true"></i>Listos sin incidencias</div>
+      <div class="value" id="m-listos">0</div>
+      <div class="sub" id="m-listos-sub">—</div>
+    </div>
+    <div class="metric-card red">
+      <div class="label"><i class="ti ti-alert-triangle" aria-hidden="true"></i>Con incidencias</div>
+      <div class="value" id="m-incidencias">0</div>
+      <div class="sub">centros</div>
+    </div>
+    <div class="metric-card amber">
+      <div class="label"><i class="ti ti-clock-question" aria-hidden="true"></i>Sin reportar</div>
+      <div class="value" id="m-sinreportar">0</div>
+      <div class="sub">estado pendiente</div>
+    </div>
+    <div class="metric-card purple">
+      <div class="label"><i class="ti ti-user-check" aria-hidden="true"></i>Alumnos presentes</div>
+      <div class="value" id="m-presentes">0</div>
+      <div class="sub" id="m-presentes-sub">según CEs con datos</div>
+    </div>
+    <div class="metric-card">
+      <div class="label"><i class="ti ti-percentage" aria-hidden="true"></i>% Asistencia</div>
+      <div class="value" id="m-pct">—</div>
+      <div class="sub">CEs con asistencia</div>
+    </div>
+  </div>
+
+  <!-- DOS COLUMNAS -->
+  <div class="two-col" style="margin-top:16px">
+    <!-- DESGLOSE DE INCIDENCIAS -->
+    <div class="card">
+      <div class="card-title"><i class="ti ti-alert-circle" aria-hidden="true"></i>Incidencias confirmadas por tipo</div>
+      <div class="inc-row">
+        <div class="inc-icon amber"><i class="ti ti-bolt-off" aria-hidden="true"></i></div>
+        <div class="inc-label">Sin electricidad</div>
+        <div class="inc-count" id="inc-elect">0</div>
+      </div>
+      <div class="inc-row">
+        <div class="inc-icon blue"><i class="ti ti-wifi-off" aria-hidden="true"></i></div>
+        <div class="inc-label">Sin internet</div>
+        <div class="inc-count" id="inc-internet">0</div>
+      </div>
+      <div class="inc-row">
+        <div class="inc-icon coral"><i class="ti ti-user-x" aria-hidden="true"></i></div>
+        <div class="inc-label">Cuidador ausente</div>
+        <div class="inc-count" id="inc-cuidador">0</div>
+      </div>
+      <div class="inc-row">
+        <div class="inc-icon red"><i class="ti ti-id-badge-off" aria-hidden="true"></i></div>
+        <div class="inc-label">Coordinador ausente</div>
+        <div class="inc-count" id="inc-coord">0</div>
+      </div>
+      <div class="inc-row">
+        <div class="inc-icon green"><i class="ti ti-tool" aria-hidden="true"></i></div>
+        <div class="inc-label">Técnico de soporte ausente</div>
+        <div class="inc-count" id="inc-tecnico">0</div>
+      </div>
+      <div class="inc-row">
+        <div class="inc-icon purple"><i class="ti ti-door-off" aria-hidden="true"></i></div>
+        <div class="inc-label">Aula no lista</div>
+        <div class="inc-count" id="inc-aula">0</div>
+      </div>
+      <div class="inc-row">
+        <div class="inc-icon amber"><i class="ti ti-mood-confuzed" aria-hidden="true"></i></div>
+        <div class="inc-label">Desorden exterior aula</div>
+        <div class="inc-count" id="inc-desorden">0</div>
+      </div>
+      <div style="margin-top:14px; position:relative; height:150px;">
+        <canvas id="chartIncidencias" role="img" aria-label="Gráfico de incidencias por tipo"></canvas>
+      </div>
+    </div>
+
+    <!-- ESTADO GENERAL (DONA) -->
+    <div class="card">
+      <div class="card-title"><i class="ti ti-chart-donut" aria-hidden="true"></i>Estado general de los centros</div>
+      <div style="position:relative; height:240px;">
+        <canvas id="chartEstado" role="img" aria-label="Estado general de los centros educativos"></canvas>
+      </div>
+      <div style="display:flex;gap:16px;margin-top:12px;font-size:11px;color:var(--text3);justify-content:center;flex-wrap:wrap;">
+        <span style="display:flex;align-items:center;gap:4px;"><span style="width:10px;height:10px;border-radius:2px;background:#3b6d11;"></span>Listos</span>
+        <span style="display:flex;align-items:center;gap:4px;"><span style="width:10px;height:10px;border-radius:2px;background:#a32d2d;"></span>Con incidencias</span>
+        <span style="display:flex;align-items:center;gap:4px;"><span style="width:10px;height:10px;border-radius:2px;background:#b9b8b2;"></span>Sin reportar</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- TABLA -->
+  <div class="section-label" style="margin-top:28px">Detalle por centro educativo</div>
+  <div class="card" style="padding:0;">
+    <div class="table-wrap">
+      <table id="tabla-ces">
+        <thead>
+          <tr>
+            <th>Código</th>
+            <th>Centro educativo</th>
+            <th>Monitor</th>
+            <th class="center">Estado</th>
+            <th class="center">Electric.</th>
+            <th class="center">Internet</th>
+            <th class="center">Cuidador</th>
+            <th class="center">Coordin.</th>
+            <th class="center">Técnico</th>
+            <th class="center">Aula</th>
+            <th class="center">Desorden</th>
+            <th class="center">Esper.</th>
+            <th class="center">Presen.</th>
+            <th>Inicio</th>
+            <th>Receso</th>
+            <th>Fin</th>
+          </tr>
+        </thead>
+        <tbody id="tabla-body"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- FOOTER -->
+  <div class="footer">
+    <span><i class="ti ti-cloud" style="vertical-align:-2px;margin-right:4px" aria-hidden="true"></i>Datos leídos en vivo desde Google Sheets · actualización automática cada minuto.</span>
+    <span>Prueba DESPEGA · Tablero operativo</span>
+  </div>
+</div>
+
+<script>
+/* ============================================================
+   CONFIGURACIÓN
+   ============================================================ */
+const SHEET_ID   = '1owxrSnT6TIyw8nnN6jA_aF8YGJF-kok9HXYlwpjcUOM';
+const SHEET_NAME = 'REGISTRO INCIDENCIAS';
+const REFRESH_MS = 60000;
+const HANDLER    = 'onDespegaData';
+
+/* Índices de columnas (hoja REGISTRO INCIDENCIAS):
+   0 Código CE | 1 Nombre CE | 2 Monitor | 3 Alumnos Esperados | 4 Asistencia Total |
+   5 Ausencias | 6 % Asistencia | 7 Centro escolar listo sin incidencias |
+   8 Electricidad | 9 Internet | 10 Ausencia Cuidador | 11 Ausencia Coordinador |
+   12 Ausencia de técnico de soporte | 13 Aula lista | 14 Desorden Exterior Aula |
+   15 Total Incidencias | 16 Hora Inicio Prueba | 17 Inicio Receso | 18 Hora Finalización */
+
+let registros = [];
+let chartInc = null, chartEstado = null;
+
+/* ============================================================
+   CARGA DE DATOS (JSONP — evita problemas de CORS)
+   ============================================================ */
+function gvizUrl() {
+  return 'https://docs.google.com/spreadsheets/d/' + SHEET_ID +
+         '/gviz/tq?sheet=' + encodeURIComponent(SHEET_NAME) +
+         '&tqx=out:json;responseHandler:' + HANDLER +
+         '&_=' + Date.now();
+}
+
+function fetchData() {
+  const btn = document.getElementById('btn-refresh');
+  btn.classList.add('loading'); btn.disabled = true;
+  const info = document.getElementById('updated-info');
+  info.classList.remove('err'); info.textContent = 'Actualizando…';
+  const old = document.getElementById('gviz-script');
+  if (old) old.remove();
+  const s = document.createElement('script');
+  s.id = 'gviz-script';
+  s.src = gvizUrl();
+  s.onerror = function () { mostrarError('No se pudo conectar con el Google Sheet. Revisa la conexión.'); };
+  document.body.appendChild(s);
+}
+
+function cellV(c, i) { return (c[i] && c[i].v !== null && c[i].v !== undefined) ? c[i].v : null; }
+function cellF(c, i) { return c[i] ? (c[i].f !== null && c[i].f !== undefined ? c[i].f : c[i].v) : null; }
+function norm(v) { return (v === null || v === undefined) ? '' : String(v).trim(); }
+
+function parseRow(c) {
+  if (!c) return null;
+  const codigoRaw = cellV(c, 0);
+  if (codigoRaw === null || codigoRaw === '') return null;
+  const espRaw = cellV(c, 3), preRaw = cellV(c, 4);
+  return {
+    codigo:    String(codigoRaw),
+    nombre:    norm(cellV(c, 1)),
+    monitor:   norm(cellV(c, 2)),
+    esperados: (espRaw === null || espRaw === '') ? null : Number(espRaw),
+    presentes: (preRaw === null || preRaw === '') ? null : Number(preRaw),
+    estado:    norm(cellV(c, 7)),
+    elect:     norm(cellV(c, 8)),
+    internet:  norm(cellV(c, 9)),
+    cuidador:  norm(cellV(c, 10)),
+    coord:     norm(cellV(c, 11)),
+    tecnico:   norm(cellV(c, 12)),
+    aula:      norm(cellV(c, 13)),
+    desorden:  norm(cellV(c, 14)),
+    inicio:    norm(cellF(c, 16)),
+    receso:    norm(cellF(c, 17)),
+    fin:       norm(cellF(c, 18))
+  };
+}
+
+window[HANDLER] = function (resp) {
+  try {
+    if (!resp || resp.status === 'error' || !resp.table) { mostrarError('El Google Sheet devolvió una respuesta inválida.'); return; }
+    const rows = resp.table.rows || [];
+    registros = rows.map(function (r) { return parseRow(r.c); }).filter(function (x) { return x && x.codigo; });
+    render();
+    marcarActualizado();
+  } catch (e) {
+    mostrarError('Error procesando datos: ' + e.message);
+  } finally {
+    const btn = document.getElementById('btn-refresh');
+    btn.classList.remove('loading'); btn.disabled = false;
+  }
+};
+
+function marcarActualizado() {
+  document.getElementById('error-banner').style.display = 'none';
+  const info = document.getElementById('updated-info');
+  info.classList.remove('err');
+  const hora = new Date().toLocaleTimeString('es-SV', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+  info.innerHTML = '<i class="ti ti-circle-check" style="vertical-align:-2px"></i> Última actualización: ' + hora;
+}
+
+function mostrarError(msg) {
+  const banner = document.getElementById('error-banner');
+  document.getElementById('error-text').textContent = msg;
+  banner.style.display = 'flex';
+  const info = document.getElementById('updated-info');
+  info.classList.add('err'); info.textContent = 'Error al actualizar';
+  const btn = document.getElementById('btn-refresh');
+  btn.classList.remove('loading'); btn.disabled = false;
+}
+
+/* ============================================================
+   CLASIFICACIÓN DE ESTADOS
+   ok = correcto | warn = pendiente | transit = en camino | err = problema | empty = sin dato
+   ============================================================ */
+function classify(field, val) {
+  const v = norm(val).toLowerCase();
+  if (v === '') return 'empty';
+  if (field === 'sino') {
+    if (v === 'si' || v === 'sí') return 'ok';
+    if (v === 'no') return 'err';
+    return 'warn';
+  }
+  if (field === 'presencia') {
+    if (v === 'presente') return 'ok';
+    if (v === 'ausente') return 'err';
+    if (v === 'por informar') return 'warn';
+    if (v === 'en camino') return 'transit';
+    return 'warn';
+  }
+  if (field === 'aula') {
+    if (v === 'sí' || v === 'si') return 'ok';
+    if (v === 'no') return 'err';
+    return 'warn'; // En Preparación u otros
+  }
+  if (field === 'desorden') {
+    if (v.indexOf('sin desorden') >= 0) return 'ok';
+    if (v.indexOf('con desorden') >= 0) return 'err';
+    return 'warn';
+  }
+  if (field === 'estado') {
+    if (v.indexOf('sin incidencias') >= 0) return 'ok';
+    if (v.indexOf('con incidencias') >= 0) return 'err';
+    return 'empty';
+  }
+  return 'empty';
+}
+
+function pill(field, val) {
+  const cls = classify(field, val);
+  const txt = norm(val);
+  if (cls === 'empty' || txt === '') return '<span class="pill pill-pending">—</span>';
+  const map = { ok: 'pill-ok', warn: 'pill-warn', transit: 'pill-pending', err: 'pill-err' };
+  return '<span class="pill ' + (map[cls] || 'pill-pending') + '">' + txt + '</span>';
+}
+
+/* ============================================================
+   CÁLCULOS Y RENDER
+   ============================================================ */
+function calcTotales() {
+  let registrados = registros.length;
+  let listos = 0, conInc = 0, sinReportar = 0;
+  let presentes = 0, esperados = 0;
+  let inc = { elect: 0, internet: 0, cuidador: 0, coord: 0, tecnico: 0, aula: 0, desorden: 0 };
+
+  registros.forEach(function (r) {
+    const est = classify('estado', r.estado);
+    if (est === 'ok') listos++;
+    else if (est === 'err') conInc++;
+    else sinReportar++;
+
+    if (r.presentes !== null && !isNaN(r.presentes)) presentes += r.presentes;
+    if (r.esperados !== null && !isNaN(r.esperados)) esperados += r.esperados;
+
+    if (classify('sino', r.elect) === 'err') inc.elect++;
+    if (classify('sino', r.internet) === 'err') inc.internet++;
+    if (classify('presencia', r.cuidador) === 'err') inc.cuidador++;
+    if (classify('presencia', r.coord) === 'err') inc.coord++;
+    if (classify('presencia', r.tecnico) === 'err') inc.tecnico++;
+    if (classify('aula', r.aula) === 'err') inc.aula++;
+    if (classify('desorden', r.desorden) === 'err') inc.desorden++;
+  });
+
+  const pct = esperados > 0 ? Math.round((presentes / esperados) * 1000) / 10 : null;
+  return { registrados, listos, conInc, sinReportar, presentes, esperados, pct, inc };
+}
+
+function setCount(id, n) {
+  const el = document.getElementById(id);
+  el.textContent = n;
+  el.classList.toggle('zero', n === 0);
+}
+
+function render() {
+  const t = calcTotales();
+  document.getElementById('header-sub').textContent =
+    'Estado de preparación e incidencias por Centro Educativo · ' + t.registrados + ' CEs registrados';
+
+  document.getElementById('m-registrados').textContent = t.registrados;
+  document.getElementById('m-listos').textContent = t.listos;
+  document.getElementById('m-listos-sub').textContent = t.registrados > 0 ? Math.round(t.listos / t.registrados * 100) + '% del total' : '—';
+  document.getElementById('m-incidencias').textContent = t.conInc;
+  document.getElementById('m-sinreportar').textContent = t.sinReportar;
+  document.getElementById('m-presentes').textContent = t.presentes;
+  document.getElementById('m-pct').textContent = t.pct !== null ? t.pct + '%' : '—';
+
+  setCount('inc-elect', t.inc.elect);
+  setCount('inc-internet', t.inc.internet);
+  setCount('inc-cuidador', t.inc.cuidador);
+  setCount('inc-coord', t.inc.coord);
+  setCount('inc-tecnico', t.inc.tecnico);
+  setCount('inc-aula', t.inc.aula);
+  setCount('inc-desorden', t.inc.desorden);
+
+  actualizarTabla();
+  actualizarGraficos(t);
+}
+
+function actualizarTabla() {
+  const tbody = document.getElementById('tabla-body');
+  tbody.innerHTML = '';
+  if (registros.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="16" class="center" style="padding:20px;color:var(--text3)">Sin datos disponibles.</td></tr>';
+    return;
+  }
+  registros.forEach(function (r) {
+    const estCls = classify('estado', r.estado);
+    const estPill = estCls === 'ok' ? '<span class="pill pill-ok">Sin incidencias</span>'
+                  : estCls === 'err' ? '<span class="pill pill-err">Con incidencias</span>'
+                  : '<span class="pill pill-pending">Sin reportar</span>';
+    const tr = document.createElement('tr');
+    tr.innerHTML =
+      '<td class="primary">' + r.codigo + '</td>' +
+      '<td class="primary">' + (r.nombre || '—') + '</td>' +
+      '<td>' + (r.monitor || '—') + '</td>' +
+      '<td class="center">' + estPill + '</td>' +
+      '<td class="center">' + pill('sino', r.elect) + '</td>' +
+      '<td class="center">' + pill('sino', r.internet) + '</td>' +
+      '<td class="center">' + pill('presencia', r.cuidador) + '</td>' +
+      '<td class="center">' + pill('presencia', r.coord) + '</td>' +
+      '<td class="center">' + pill('presencia', r.tecnico) + '</td>' +
+      '<td class="center">' + pill('aula', r.aula) + '</td>' +
+      '<td class="center">' + pill('desorden', r.desorden) + '</td>' +
+      '<td class="center">' + (r.esperados !== null ? r.esperados : '—') + '</td>' +
+      '<td class="center">' + (r.presentes !== null ? r.presentes : '—') + '</td>' +
+      '<td>' + (r.inicio || '—') + '</td>' +
+      '<td>' + (r.receso || '—') + '</td>' +
+      '<td>' + (r.fin || '—') + '</td>';
+    tbody.appendChild(tr);
+  });
+}
+
+function actualizarGraficos(t) {
+  if (typeof Chart === 'undefined') return;
+
+  if (chartInc) chartInc.destroy();
+  chartInc = new Chart(document.getElementById('chartIncidencias'), {
+    type: 'bar',
+    data: {
+      labels: ['Electric.', 'Internet', 'Cuidador', 'Coordin.', 'Técnico', 'Aula', 'Desorden'],
+      datasets: [{
+        label: 'Incidencias',
+        data: [t.inc.elect, t.inc.internet, t.inc.cuidador, t.inc.coord, t.inc.tecnico, t.inc.aula, t.inc.desorden],
+        backgroundColor: ['#ba7517', '#185fa5', '#d85a30', '#a32d2d', '#3b6d11', '#534ab7', '#854f0b'],
+        borderRadius: 4
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false, animation: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        y: { beginAtZero: true, ticks: { precision: 0, color: '#888780', font: { size: 10 } }, grid: { color: 'rgba(128,128,128,0.12)' } },
+        x: { ticks: { color: '#888780', font: { size: 9 } }, grid: { display: false } }
+      }
+    }
+  });
+
+  if (chartEstado) chartEstado.destroy();
+  chartEstado = new Chart(document.getElementById('chartEstado'), {
+    type: 'doughnut',
+    data: {
+      labels: ['Listos', 'Con incidencias', 'Sin reportar'],
+      datasets: [{
+        data: [t.listos, t.conInc, t.sinReportar],
+        backgroundColor: ['#3b6d11', '#a32d2d', '#b9b8b2'],
+        borderWidth: 0
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false, animation: false,
+      cutout: '62%',
+      plugins: {
+        legend: { display: false },
+        tooltip: { callbacks: { label: function (ctx) { return ctx.label + ': ' + ctx.parsed; } } }
+      }
+    }
+  });
+}
+
+/* ============================================================
+   ARRANQUE + AUTO-REFRESH CADA MINUTO
+   ============================================================ */
+fetchData();
+setInterval(fetchData, REFRESH_MS);
+</script>
+</body>
+</html>
